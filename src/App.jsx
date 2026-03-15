@@ -1471,6 +1471,11 @@ function Placeholder({ title, icon, desc, onBack }) {
 // ═══════════ MAIN APP ═══════════
 
 export default function TGBeeApp() {
+// Telegram WebApp SDK
+  const tg = window.Telegram?.WebApp;
+  const tgUser = tg?.initDataUnsafe?.user;
+  const userName = tgUser?.first_name || "Гость";
+  const userUsername = tgUser?.username ? "@" + tgUser.username : "@username";
   const [screen, setScreen] = useState("onboarding");
   const [tab, setTab] = useState("cabinet");
   const [ch, setCh] = useState(null);
@@ -1520,7 +1525,7 @@ export default function TGBeeApp() {
         *::-webkit-scrollbar { display:none; }
         input::placeholder { color: #6b8aaa; }
       `}</style>
-      {showHdr && <AppHeader />}
+      {showHdr && <AppHeader username={userUsername} />}
       {showTabs && <TabBar active={tab} onChange={handleTab} />}
       {render()}
     </div>
