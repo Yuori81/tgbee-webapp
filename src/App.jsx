@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-
+const API_URL = "https://tgbee-server-production.up.railway.app";
 // ═══════════════════════════════════════════════════════
 // TG Bee — Telegram Mini App  
 // Шаг 2: Все экраны P1 (онбординг → кабинет → поиск → профиль → разбор) + PA воронка
@@ -130,12 +130,39 @@ function FirstAnalysisScreen({ onBack, onAnalyze }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!link.trim()) return;
     setAnalyzing(true); setProgress(0);
+    
+    // Анимация прогресса
     const iv = setInterval(() => {
-      setProgress(p => { if (p >= 100) { clearInterval(iv); onAnalyze(link); return 100; } return p + Math.random() * 15 + 5; });
+      setProgress(p => {
+        if (p >= 90) { clearInterval(iv); return 90; }
+        return p + Math.random() * 10 + 3;
+      });
     }, 300);
+
+    try {
+      const clean = link.trim().replace(/^@/, '').replace(/^https?:\/\/(t\.me|telegram\.me)\//i, '');
+      const res = await fetch(API_URL + '/api/channel/' + clean);
+      const data = await res.json();
+      clearInterval(iv);
+      setProgress(100);
+      
+      if (data.error) {
+        alert('Канал не найден: ' + clean);
+        setAnalyzing(false);
+        setProgress(0);
+        return;
+      }
+      
+      setTimeout(() => onAnalyze(link, data), 500);
+    } catch (err) {
+      clearInterval(iv);
+      alert('Ошибка сервера. Попробуйте позже.');
+      setAnalyzing(false);
+      setProgress(0);
+    }
   };
 
   if (analyzing) {
@@ -188,20 +215,22 @@ function FirstAnalysisScreen({ onBack, onAnalyze }) {
 
 // ═══════════ P1-5: РЕЗУЛЬТАТ АНАЛИЗА ═══════════
 
-function AnalysisResultScreen({ channel, onToCabinet, onAudit }) {
+function AnalysisResultScreen({ channel, apiData, onToCabinet, onAudit }) {
+  const d = apiData || {};
   const metrics = [
-    { label: "Подписчики", value: "5,247", change: "+124", pos: true },
-    { label: "Охват поста", value: "1,832", change: "+8%", pos: true },
-    { label: "ER", value: "34.9%", change: "", pos: true },
-    { label: "ER24", value: "28.1%", change: "-2%", pos: false },
-    { label: "Индекс цит.", value: "12.4", change: "+0.8", pos: true },
-    { label: "Постов/нед", value: "4.2", change: "", pos: true },
+    { label: "Подписчики", value: d.participantsFormatted || "—", change: "", pos: true },
+    { label: "Охват поста", value: d.avgPostReachFormatted || "—", change: "", pos: true },
+    { label: "ER", value: d.erFormatted || "—", change: "", pos: true },
+    { label: "ERR", value: d.errFormatted || "—", change: "", pos: false },
+    { label: "Индекс цит.", value: d.ciIndex ? d.ciIndex.toFixed(1) : "—", change: "", pos: true },
+    { label: "Постов", value: d.postsCount || "—", change: "", pos: true },
   ];
+  const verdict = d.verdict || { label: "Хорошо", color: "green", emoji: "🟢" };
   return (
     <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontFamily: F.h, fontSize: 13, fontWeight: 700, color: C.text }}>{channel || "@my_main_channel"}</div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: "rgba(77,202,107,.14)", border: "1.5px solid rgba(77,202,107,.28)", color: C.green }}>✓ Хорошо</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 700, background: "rgba(77,202,107,.14)", border: "1.5px solid rgba(77,202,107,.28)", color: C.green }}>{verdict.emoji} {verdict.label}</div>
       </div>
       <div style={{ display: "flex", overflowX: "auto", background: C.bg, borderBottom: `1px solid ${C.border}`, padding: "0 8px" }}>
         {["Обзор", "Динамика", "Аудитория", "Контент"].map((t, i) => (
@@ -1455,8 +1484,8 @@ export default function TGBeeApp() {
   const render = () => {
     switch (screen) {
       case "onboarding": return <OnboardingScreen onStartAnalysis={() => nav("first-analysis")} onAudit={() => nav("audit")} onSkip={() => { setIsNew(false); nav("cabinet-main"); }} />;
-      case "first-analysis": return <FirstAnalysisScreen onBack={() => nav(isNew ? "onboarding" : "cabinet-main")} onAnalyze={l => { setCh({ username: l, subs: "—" }); nav("analysis-result"); }} />;
-      case "analysis-result": return <AnalysisResultScreen channel={ch?.username} onToCabinet={() => { setIsNew(false); nav("cabinet-main"); }} onAudit={() => nav("audit")} />;
+      case "first-analysis": return <FirstAnalysisScreen onBack={() => nav(isNew ? "onboarding" : "cabinet-main")} onAnalyze={(l, data) => { setCh({ username: l, subs: "—", apiData: data }); nav("analysis-result"); }} />;
+      case "analysis-result": return <AnalysisResultScreen channel={ch?.username} apiData={ch?.apiData} onToCabinet={() => { setIsNew(false); nav("cabinet-main"); }} onAudit={() => nav("audit")} />;
       case "cabinet-main": return <CabinetScreen channel={ch} onNavigate={s => s === "search" ? handleTab("search") : nav(s)} />;
       case "breakdown": return <BreakdownScreen onBack={() => nav("cabinet-main")} onNavigate={nav} />;
       case "search": return <SearchScreen onAnalyze={l => { setCh({ username: l, subs: "—" }); nav("analysis-result"); }} />;
