@@ -144,7 +144,8 @@ function FirstAnalysisScreen({ onBack, onAnalyze }) {
 
     try {
       const clean = link.trim().replace(/^@/, '').replace(/^https?:\/\/(t\.me|telegram\.me)\//i, '');
-      const res = await fetch(API_URL + '/api/channel/' + clean);
+      const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+      const res = await fetch(API_URL + '/api/channel/' + clean + '?userId=' + tgId);
       const data = await res.json();
       clearInterval(iv);
       setProgress(100);
