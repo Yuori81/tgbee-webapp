@@ -1510,7 +1510,7 @@ export default function TGBeeApp() {
   const showHdr = !["first-analysis", "audit", "breakdown", "vp-list", "vp-card", "ads-list", "ad-card", "report", "status", "feedback-form", "badges", "stars", "notifications"].includes(screen) || screen === "analysis-result";
 
   return (
-    <div style={{ width: 375, height: 812, margin: "0 auto", background: C.bg, fontFamily: F.b, color: C.text, display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 0 1px rgba(255,255,255,.07), 0 40px 90px rgba(0,0,0,.6), 0 0 80px rgba(46,166,255,.05)" }}>
+    <div style={{ width: "100%", maxWidth: 375, height: "100vh", margin: "0 auto", background: C.bg, fontFamily: F.b, color: C.text, display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 0 1px rgba(255,255,255,.07), 0 40px 90px rgba(0,0,0,.6), 0 0 80px rgba(46,166,255,.05)" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Geologica:wght@300;400;500;600;700&display=swap');
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
